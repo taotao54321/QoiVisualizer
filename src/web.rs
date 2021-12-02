@@ -200,8 +200,8 @@ fn view_sidebar_info(model: &Model) -> Node<Msg> {
     div![
         div![model.img.name()],
         table![
-            tr![td!["original size"], td![model.img.filesize_orig()]],
-            tr![td!["qoi size"], td![model.img.filesize_qoi()]],
+            tr![td!["Original size"], td![model.img.filesize_orig()]],
+            tr![td!["QOI size"], td![model.img.filesize_qoi()]],
         ],
     ]
 }
@@ -210,13 +210,13 @@ fn view_vis(model: &Model) -> Node<Msg> {
     div![
         id!("vis"),
         div![
-            p!["original image:"],
+            p!["Original image:"],
             img![attrs! {
                 At::Src => model.img.url(),
             }],
         ],
         div![
-            p!["visualization:"],
+            p!["Visualization:"],
             canvas![
                 el_ref(&model.refs.canvas),
                 attrs! {
