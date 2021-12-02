@@ -1,6 +1,7 @@
 use seed::{prelude::*, *};
 use strum::IntoEnumIterator;
-use web_sys::{HtmlCanvasElement, HtmlInputElement};
+use wasm_bindgen::JsCast;
+use web_sys::{DataTransfer, DragEvent, HtmlCanvasElement, HtmlInputElement};
 
 use crate::qoi::QoiChunk;
 use crate::static_image::StaticImage;
@@ -23,6 +24,7 @@ struct Refs {
 #[derive(Debug)]
 enum Msg {
     InputFileChanged,
+    FileDropped(DataTransfer),
     UpdateImage(StaticImage),
     ToggleChunkVisibility(QoiChunk),
     MakeAllChunksVisible,
@@ -37,7 +39,19 @@ fn init(_: Url, orders: &mut impl Orders<Msg>) -> Model {
         refs: Refs::default(),
     };
 
-    orders.after_next_render(|_| Msg::Visualize);
+    orders
+        .stream(streams::window_event(Ev::DragOver, |ev| {
+            let ev = ev.dyn_into::<DragEvent>().unwrap();
+            ev.prevent_default();
+            ev.stop_propagation();
+        }))
+        .stream(streams::window_event(Ev::Drop, |ev| {
+            let ev = ev.dyn_into::<DragEvent>().unwrap();
+            ev.prevent_default();
+            ev.stop_propagation();
+            ev.data_transfer().map(Msg::FileDropped)
+        }))
+        .after_next_render(|_| Msg::Visualize);
 
     model
 }
@@ -54,17 +68,23 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
             orders.perform_cmd(async move {
                 let file = &files[0];
+                load_file(file).await.map(Msg::UpdateImage)
+            });
+        }
 
-                match StaticImage::from_blob(file.name(), file).await {
-                    Ok(img) => {
-                        log!("loaded image '{}'", file.name());
-                        Some(Msg::UpdateImage(img))
-                    }
-                    Err(e) => {
-                        log!("cannot load image '{}': {}", file.name(), e);
-                        None
-                    }
-                }
+        Msg::FileDropped(dt) => {
+            let files = match dt.files() {
+                Some(files) => files,
+                None => return,
+            };
+            let files = gloo_file::FileList::from(files);
+            if files.is_empty() {
+                return;
+            }
+
+            orders.perform_cmd(async move {
+                let file = &files[0];
+                load_file(file).await.map(Msg::UpdateImage)
             });
         }
 
@@ -98,6 +118,19 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     }
 }
 
+async fn load_file(file: &gloo_file::File) -> Option<StaticImage> {
+    match StaticImage::from_blob(file.name(), file).await {
+        Ok(img) => {
+            log!("loaded image '{}'", file.name());
+            Some(img)
+        }
+        Err(e) => {
+            log!("cannot load image '{}': {}", file.name(), e);
+            None
+        }
+    }
+}
+
 fn draw_vis(model: &Model) {
     let img_vis = visualize(&model.img, &model.config);
     let image_data = util::create_image_data(&img_vis).unwrap();
@@ -119,7 +152,7 @@ fn view_header(model: &Model) -> Vec<Node<Msg>> {
                 attrs! {
                     At::For => "input-file",
                 },
-                "Open image file: ",
+                "Open (or drop) image file: ",
             ],
             input![
                 el_ref(&model.refs.input_file),
