@@ -154,10 +154,12 @@ fn view_sidebar(model: &Model) -> Node<Msg> {
                     }),
                     ev(Ev::Change, move |_| Msg::ToggleChunkVisibility(chunk)),
                 ]],
-                td![label![
-                    attrs! {At::For => &id_str},
-                    format!("{:.02} %", percent)
-                ]],
+                td![
+                    style! {
+                        St::TextAlign => "right",
+                    },
+                    label![attrs! {At::For => &id_str}, format!("{: >5.2} %", percent)]
+                ],
                 td![label![
                     attrs! {At::For => &id_str},
                     svg![
