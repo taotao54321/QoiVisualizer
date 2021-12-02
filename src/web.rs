@@ -121,11 +121,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 async fn load_file(file: &gloo_file::File) -> Option<StaticImage> {
     match StaticImage::from_blob(file.name(), file).await {
         Ok(img) => {
-            log!("loaded image '{}'", file.name());
+            log!(format!("loaded image '{}'", file.name()));
             Some(img)
         }
         Err(e) => {
-            log!("cannot load image '{}': {}", file.name(), e);
+            log!(format!("cannot load image '{}': {}", file.name(), e));
             None
         }
     }
