@@ -190,6 +190,7 @@ fn view_sidebar(model: &Model) -> Node<Msg> {
                 td![
                     style! {
                         St::TextAlign => "right",
+                        St::WhiteSpace => "nowrap",
                     },
                     label![attrs! {At::For => &id_str}, format!("{: >5.2} %", percent)]
                 ],
